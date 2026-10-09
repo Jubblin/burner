@@ -31,6 +31,8 @@ The UI keeps Write disabled until the typed name equals the target drive name (o
 
 CI (`.github/workflows/ci.yml`) runs `cargo test` and `cargo clippy` on pull requests. Pushing a `v*` tag runs `release.yml`, which builds Tauri bundles for Windows, macOS (universal) and Linux and uploads them as per-OS workflow artifacts.
 
+Dependencies are updated by weekly Renovate PRs (`renovate.json`, never automerged). This needs the Renovate GitHub App installed on the repo, which must be done by a repo admin.
+
 ## Releasing
 
 Push a `v*` tag (bump `version` in `src-tauri/tauri.conf.json`, `Cargo.toml` first). `release.yml` builds all three platforms, attaches them to a GitHub Release and, when signing secrets exist, a signed `latest.json`. Without secrets (forks, PRs) it still builds, just unsigned and with no updater artifacts.
