@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burner - design mockup</title>
+<!-- Preview only: the app will bundle these fonts locally. -->
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --background:#F4F2EE; --surface:#FFFFFF; --text:#1B1F24; --text-muted:#5F6670;
+  --primary:#0F6B5C; --primary-hover:#0B574A; --primary-active:#094539; --on-primary:#FFFFFF;
+  --danger:#B3261E; --danger-hover:#9A1F18; --danger-active:#821A14;
+  --success:#1E7A46; --warning:#A35F00;
+  --border:#D9D5CD; --border-hover:#A9A59C; --track:#DCE8E5; --disabled:#C9CCCF; --disabled-text:#6B7078;
+  --r-sm:4px; --r-md:8px; --r-lg:12px;
+  --xs:4px; --sm:8px; --md:16px; --lg:24px; --xl:32px; --xxl:48px;
+  --on-danger:#FFFFFF; --warn-bg:var(--surface); --window-bg:#E4E2DD;
+  --sans:Satoshi,"Helvetica Neue",Arial,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+[data-theme=dark]{
+  --background:#16181B; --surface:#1F2227; --text:#ECEAE6; --text-muted:#9AA0A8;
+  --primary:#4FBFA9; --primary-hover:#6ACDB9; --primary-active:#3AA891; --on-primary:#0B1F1B;
+  --danger:#FF6B61; --danger-hover:#FF857C; --danger-active:#E5564D; --on-danger:#1A0806;
+  --success:#4CC081; --warning:#E8A33D;
+  --border:#32363D; --border-hover:#4B515A; --track:#2A3A37; --disabled:#2B2F35; --disabled-text:#7C828A;
+  --window-bg:#0F1113; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--window-bg);font:400 14px/1.5 var(--sans);color:var(--text);padding:var(--xl) var(--sm) 96px}
+.window{width:min(560px,100%);margin:0 auto;background:var(--background);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.tabs{display:flex;gap:var(--lg);padding:0 var(--lg);border-bottom:1px solid var(--border);background:var(--surface)}
+.tab{font:500 14px var(--sans);color:var(--text-muted);background:none;border:0;border-bottom:2px solid transparent;padding:var(--md) 0 14px;cursor:pointer;border-radius:0}
+.tab:hover{color:var(--text)} .tab[aria-selected=true]{color:var(--primary);border-bottom-color:var(--primary)}
+main{padding:var(--lg);display:flex;flex-direction:column;gap:var(--lg)}
+h1{font:700 22px/1.3 var(--sans);margin:0} h2{font:700 15px/1.3 var(--sans);margin:0}
+.muted{color:var(--text-muted)} .label{font:500 12px var(--sans);color:var(--text-muted)}
+.mono{font:400 13px var(--mono)}
+.step-header{display:flex;align-items:center;gap:var(--sm);padding:var(--sm) 0}
+.num{width:24px;height:24px;border-radius:50%;border:1px solid var(--text);display:grid;place-items:center;font:700 12px var(--sans)}
+.step-body{display:flex;flex-direction:column;gap:var(--sm);padding-left:32px}
+button,input,select{font-family:var(--sans)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.btn{font:500 14px var(--sans);padding:var(--sm) var(--md);border-radius:var(--r-md);border:1px solid transparent;cursor:pointer;color:var(--on-primary)}
+.btn-primary{background:var(--primary)} .btn-primary:hover{background:var(--primary-hover)} .btn-primary:active{background:var(--primary-active)}
+.btn-danger{background:var(--danger);color:var(--on-danger)} .btn-danger:hover{background:var(--danger-hover)} .btn-danger:active{background:var(--danger-active)}
+.btn-quiet{background:var(--surface);color:var(--text);border-color:var(--border)} .btn-quiet:hover{border-color:var(--border-hover)}
+.btn:disabled{background:var(--disabled);color:var(--disabled-text);cursor:not-allowed;border-color:transparent}
+.row{display:flex;gap:var(--sm);align-items:center;flex-wrap:wrap}
+.input{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sm);font-size:14px;min-width:0}
+.input:hover{border-color:var(--border-hover)} .input:disabled{color:var(--text-muted);background:var(--background)}
+.file{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sm) 12px;display:flex;justify-content:space-between;gap:var(--sm);flex-wrap:wrap}
+.card{display:block;width:100%;text-align:left;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--md);cursor:pointer;font:inherit}
+.card:hover{border-color:var(--border-hover)}
+.card .name{font:700 15px var(--sans);display:block}
+.card .meta{display:block;color:var(--text-muted);margin-top:var(--xs)}
+.card .path{display:block;margin-top:var(--xs)}
+.card.danger{border:2px solid var(--danger);padding:15px}
+.card.danger .tag{color:var(--danger);font:500 12px var(--sans);display:block;margin-top:var(--sm)}
+.card.pick[aria-pressed=true]{border:2px solid var(--primary);padding:15px}
+.track{height:8px;background:var(--track);border-radius:var(--r-sm);overflow:hidden}
+.bar{height:100%;background:var(--primary);border-radius:var(--r-sm);transition:width 250ms ease-out}
+.progress-info{display:flex;justify-content:space-between;gap:var(--sm);flex-wrap:wrap}
+.ok{color:var(--success);font-weight:500} .err{color:var(--warning);font-weight:500}
+.notice{background:var(--surface);border:1px solid var(--warning);border-radius:var(--r-md);padding:12px var(--md);display:flex;gap:12px}
+.notice svg{flex:none;margin-top:2px}
+.empty{background:var(--surface);border:1px dashed var(--border-hover);border-radius:var(--r-lg);padding:var(--lg);text-align:center}
+.os{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px var(--md);cursor:pointer}
+.os:hover{border-color:var(--border-hover)} .os:has(input:checked){border:2px solid var(--primary);padding:11px 15px}
+.os input{margin-top:4px;accent-color:var(--primary)}
+.os .t{display:flex;justify-content:space-between;gap:var(--sm);font-weight:700}
+.toggle{display:flex;gap:var(--sm);align-items:center;cursor:pointer} .toggle input{accent-color:var(--primary);width:16px;height:16px}
+.confirm{display:flex;flex-direction:column;gap:var(--sm)}
+.or{align-self:flex-start}
+.statebar{position:fixed;left:0;right:0;bottom:0;background:#1B1F24;color:#fff;padding:var(--sm) var(--md);display:flex;gap:var(--xs);flex-wrap:wrap;justify-content:center;align-items:center;font-size:12px}
+.statebar b{font-weight:500;color:#B8BDC4;margin-right:var(--sm)}
+.statebar button{font:500 12px var(--sans);background:transparent;color:#fff;border:1px solid #4A515A;border-radius:var(--r-sm);padding:var(--xs) var(--sm);cursor:pointer}
+.statebar button:hover{border-color:#fff} .statebar button[aria-pressed=true]{background:#fff;color:#1B1F24}
+[hidden]{display:none!important}
+@media (max-width:440px){main{padding:var(--md)} .tabs{gap:var(--md);padding:0 var(--md)} .step-body{padding-left:0}}
+@media (prefers-reduced-motion:reduce){.bar{transition:none}}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-mode="write" aria-selected="true">Write</button>
+    <button class="tab" role="tab" data-mode="backup" aria-selected="false">Backup</button>
+    <button class="tab" role="tab" data-mode="download" aria-selected="false">Download OS</button>
+  </div>
+
+  <!-- WRITE -->
+  <main data-mode="write">
+    <div data-show="disabled enabled writing verifying empty">
+      <div class="step-header"><span class="num">1</span><h2>Source</h2></div>
+      <div class="step-body">
+        <div class="file"><span>ubuntu-24.04.1-desktop-amd64.iso</span><span class="mono">5.9 GB</span></div>
+        <button class="btn btn-quiet or">Choose a different image</button>
+      </div>
+    </div>
+
+    <div data-show="disabled enabled writing verifying">
+      <div class="step-header"><span class="num">2</span><h2>Target</h2></div>
+      <div class="step-body" id="drives">
+        <button class="card danger" data-name="Kingston DT 32 GB" aria-pressed="true">
+          <span class="name">Kingston DT 32 GB</span>
+          <span class="meta">29.8 GB · USB</span>
+          <span class="path mono">/dev/disk4</span>
+          <span class="tag">Everything on this drive will be erased</span>
+        </button>
+        <button class="card" data-name="SanDisk Ultra 64 GB" aria-pressed="false">
+          <span class="name">SanDisk Ultra 64 GB</span>
+          <span class="meta">58.4 GB · USB</span>
+          <span class="path mono">/dev/disk5</span>
+        </button>
+        <button class="card" data-name="Generic SD Reader 16 GB" aria-pressed="false">
+          <span class="name">Generic SD Reader 16 GB</span>
+          <span class="meta">14.9 GB · SD card</span>
+          <span class="path mono">/dev/disk6</span>
+        </button>
+        <span class="label">Your system disk is never listed.</span>
+      </div>
+    </div>
+
+    <div data-show="empty">
+      <div class="step-header"><span class="num">2</span><h2>Target</h2></div>
+      <div class="step-body">
+        <div class="empty">
+          <h2>No removable drives found</h2>
+          <p class="muted" style="margin:var(--xs) 0 var(--md)">Plug in a USB drive or SD card. Your system disk is never shown.</p>
+          <button class="btn btn-primary">Scan again</button>
+        </div>
+      </div>
+    </div>
+
+    <div data-show="disabled enabled writing verifying success error">
+      <div class="step-header"><span class="num">3</span><h2>Write</h2></div>
+      <div class="step-body">
+        <div class="confirm" data-show="disabled enabled">
+          <label class="label" for="confirmText">Type the drive name to confirm</label>
+          <input class="input mono" id="confirmText" autocomplete="off" spellcheck="false" placeholder="Kingston DT 32 GB">
+          <label class="toggle"><input type="checkbox" id="confirmBox"> <span>I understand every file on <b class="dn">Kingston DT 32 GB</b> will be erased</span></label>
+          <button class="btn btn-danger" id="writeBtn" disabled>Erase Kingston DT 32 GB and write</button>
+        </div>
+
+        <div data-show="writing">
+          <div class="progress-info"><span>Writing</span><span class="mono">62%</span></div>
+          <div class="track"><div class="bar" style="width:62%"></div></div>
+          <div class="progress-info muted"><span class="mono">3.7 GB of 5.9 GB</span><span class="mono">38.2 MB/s · 0:58 left</span></div>
+          <button class="btn btn-quiet or">Cancel</button>
+        </div>
+
+        <div data-show="verifying">
+          <div class="progress-info"><span>Verifying</span><span class="mono">28%</span></div>
+          <div class="track"><div class="bar" style="width:28%"></div></div>
+          <div class="progress-info muted"><span class="mono">1.6 GB of 5.9 GB read back</span><span class="mono">71.5 MB/s · 0:59 left</span></div>
+        </div>
+
+        <div data-show="success">
+          <h1 class="ok">Done. Verified.</h1>
+          <p style="margin:0">ubuntu-24.04.1-desktop-amd64.iso was written to <b>Kingston DT 32 GB</b> and read back correctly.</p>
+          <div class="mono muted">/dev/disk4 · 5.9 GB · 2:41</div>
+          <div class="row"><button class="btn btn-primary">Eject drive</button><button class="btn btn-quiet">Write another</button></div>
+        </div>
+
+        <div data-show="error">
+          <div class="notice" role="alert">
+            <svg style="color:var(--warning)" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 18 16.5H2z"/><path d="M10 8v4M10 14.3v.2"/></svg>
+            <div>
+              <b class="err">Verification failed</b>
+              <p style="margin:var(--xs) 0 0">Data read back from <b>Kingston DT 32 GB</b> does not match the image. The drive may be failing or was removed.</p>
+              <div class="mono muted" style="margin-top:var(--xs)">/dev/disk4 · mismatch at 2,148,532,224 bytes</div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:var(--sm)"><button class="btn btn-primary">Try again</button><button class="btn btn-quiet">Choose another drive</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- BACKUP -->
+  <main data-mode="backup" hidden>
+    <div>
+      <div class="step-header"><span class="num">1</span><h2>Drive to back up</h2></div>
+      <div class="step-body">
+        <button class="card pick" aria-pressed="true"><span class="name">Kingston DT 32 GB</span><span class="meta">29.8 GB · USB</span><span class="path mono">/dev/disk4</span></button>
+        <button class="card pick" aria-pressed="false"><span class="name">SanDisk Ultra 64 GB</span><span class="meta">58.4 GB · USB</span><span class="path mono">/dev/disk5</span></button>
+      </div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">2</span><h2>Output file</h2></div>
+      <div class="step-body">
+        <div class="row" style="flex-wrap:nowrap"><input class="input mono" style="flex:1" value="~/Backups/kingston-dt-32gb.img" aria-label="Output file"><button class="btn btn-quiet">Browse</button></div>
+        <label class="toggle"><input type="checkbox" checked> <span>Compress with gzip <span class="muted">(smaller file, slower)</span></span></label>
+      </div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">3</span><h2>Back up</h2></div>
+      <div class="step-body">
+        <button class="btn btn-primary or">Start backup</button>
+        <div class="progress-info"><span>Reading drive</span><span class="mono">41%</span></div>
+        <div class="track"><div class="bar" style="width:41%"></div></div>
+        <div class="progress-info muted"><span class="mono">12.2 GB of 29.8 GB</span><span class="mono">64.0 MB/s · 4:36 left</span></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- DOWNLOAD -->
+  <main data-mode="download" hidden>
+    <div>
+      <div class="step-header"><span class="num">1</span><h2>Choose an OS</h2></div>
+      <div class="step-body" role="radiogroup">
+        <label class="os"><input type="radio" name="os" checked><span style="flex:1"><span class="t"><span>Ubuntu 24.04.1 Desktop</span><span class="mono">5.9 GB</span></span><span class="muted">Friendly Linux desktop with 5 years of updates.</span></span></label>
+        <label class="os"><input type="radio" name="os"><span style="flex:1"><span class="t"><span>Raspberry Pi OS (64-bit)</span><span class="mono">1.2 GB</span></span><span class="muted">Official Debian-based system for Raspberry Pi 3, 4 and 5.</span></span></label>
+        <label class="os"><input type="radio" name="os"><span style="flex:1"><span class="t"><span>Debian 12 Netinstall</span><span class="mono">650 MB</span></span><span class="muted">Small installer that fetches packages as it goes.</span></span></label>
+        <label class="os"><input type="radio" name="os"><span style="flex:1"><span class="t"><span>Fedora Workstation 41</span><span class="mono">2.3 GB</span></span><span class="muted">Current GNOME desktop with recent software.</span></span></label>
+        <label class="os"><input type="radio" name="os"><span style="flex:1"><span class="t"><span>Tails 6.8</span><span class="mono">1.4 GB</span></span><span class="muted">Privacy-focused system that leaves no trace on the computer.</span></span></label>
+      </div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">2</span><h2>Download</h2></div>
+      <div class="step-body">
+        <div class="progress-info"><span>Downloading Ubuntu 24.04.1 Desktop</span><span class="mono">73%</span></div>
+        <div class="track"><div class="bar" style="width:73%"></div></div>
+        <div class="progress-info muted"><span class="mono">4.3 GB of 5.9 GB</span><span class="mono">22.4 MB/s · 1:11 left</span></div>
+        <div class="mono"><span class="muted">SHA-256</span> <span class="ok">verified</span> <span class="muted">a435f6f3…3b7e91c2</span></div>
+        <div class="row"><button class="btn btn-primary">Use this image</button><button class="btn btn-quiet">Pause</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="statebar" aria-label="Preview states (not part of the app)">
+  <b>Preview</b>
+  <button data-state="disabled" data-m="write" aria-pressed="true">Write: locked</button>
+  <button data-state="enabled" data-m="write" aria-pressed="false">Write: ready</button>
+  <button data-state="writing" data-m="write" aria-pressed="false">Writing</button>
+  <button data-state="verifying" data-m="write" aria-pressed="false">Verifying</button>
+  <button data-state="success" data-m="write" aria-pressed="false">Success</button>
+  <button data-state="error" data-m="write" aria-pressed="false">Error</button>
+  <button data-state="empty" data-m="write" aria-pressed="false">No drives</button>
+  <button data-state="backup" data-m="backup" aria-pressed="false">Backup</button>
+  <button data-state="download" data-m="download" aria-pressed="false">Download OS</button>
+  <button id="theme" aria-pressed="false">Theme: Light</button>
+</nav>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const txt=$('#confirmText'), box=$('#confirmBox'), btn=$('#writeBtn');
+let drive='Kingston DT 32 GB', state='disabled';
+
+function update(){
+  const ok=txt.value.trim()===drive||box.checked;
+  btn.disabled=!ok;
+  btn.textContent='Erase '+drive+' and write';
+  txt.placeholder=drive;
+  $$('.dn').forEach(e=>e.textContent=drive);
+}
+function show(s){
+  state=s;
+  const mode=['backup','download'].includes(s)?s:'write';
+  $$('main').forEach(m=>m.hidden=m.dataset.mode!==mode);
+  $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.mode===mode));
+  $$('[data-show]').forEach(e=>e.hidden=mode!=='write'||!e.dataset.show.split(' ').includes(s));
+  $$('.statebar button[data-state]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.state===s));
+  if(s==='enabled'){box.checked=true;update();}
+  if(s==='disabled'){txt.value='';box.checked=false;update();}
+}
+$$('.statebar button[data-state]').forEach(b=>b.onclick=()=>show(b.dataset.state));
+$$('.tab').forEach(t=>t.onclick=()=>show(t.dataset.mode==='write'?'disabled':t.dataset.mode));
+txt.oninput=box.onchange=update;
+$$('#drives .card').forEach(c=>c.onclick=()=>{
+  drive=c.dataset.name; txt.value=''; box.checked=false;
+  $$('#drives .card').forEach(o=>{
+    const sel=o===c; o.setAttribute('aria-pressed',sel); o.classList.toggle('danger',sel);
+    const tag=$('.tag',o); if(tag)tag.remove();
+    if(sel){const t=document.createElement('span');t.className='tag';t.textContent='Everything on this drive will be erased';o.append(t);}
+  });
+  update();
+});
+$$('.card.pick').forEach(c=>c.onclick=()=>$$('.card.pick').forEach(o=>o.setAttribute('aria-pressed',o===c)));
+btn.onclick=()=>show('writing');
+const setTheme=d=>{document.documentElement.dataset.theme=d?'dark':'light';$('#theme').textContent='Theme: '+(d?'Dark':'Light');$('#theme').setAttribute('aria-pressed',d)};
+$('#theme').onclick=()=>setTheme(document.documentElement.dataset.theme!=='dark');
+const q=new URLSearchParams(location.search);setTheme(q.get('theme')==='dark');
+show(location.hash.slice(1)||'disabled');
+</script>
+</body>
+</html>
