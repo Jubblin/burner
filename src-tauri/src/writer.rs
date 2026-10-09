@@ -48,7 +48,7 @@ pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(
     let e = |e: std::io::Error| e.to_string();
     let pos = Arc::new(AtomicU64::new(0));
     let (mut src, total) = open_source(image, pos.clone())?;
-    let mut dst = OpenOptions::new().write(true).create(true).open(target).map_err(e)?;
+    let mut dst = OpenOptions::new().write(true).create(true).truncate(false).open(target).map_err(e)?;
     let pad = !dst.metadata().map_err(e)?.is_file();
     let (mut hasher, mut buf, mut n) = (Sha256::new(), vec![0u8; BLOCK], 0u64);
     loop {
@@ -249,9 +249,8 @@ fn elevated(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progre
         let lines: Vec<&str> = text.lines().collect();
         for l in lines.iter().skip(seen) {
             let f: Vec<&str> = l.split_whitespace().collect();
-            match f.as_slice() {
-                [ph, d, t] => emit(Progress { phase: (*ph).into(), done: d.parse().unwrap_or(0), total: t.parse().unwrap_or(0) }),
-                _ => {}
+            if let [ph, d, t] = f.as_slice() {
+                emit(Progress { phase: (*ph).into(), done: d.parse().unwrap_or(0), total: t.parse().unwrap_or(0) })
             }
         }
         seen = lines.len();
