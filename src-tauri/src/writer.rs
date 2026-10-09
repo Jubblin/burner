@@ -58,7 +58,9 @@ pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(
     let e = |e: std::io::Error| e.to_string();
     let pos = Arc::new(AtomicU64::new(0));
     let (mut src, total) = open_source(image, pos.clone())?;
-    let mut dst = OpenOptions::new().write(true).create(true).truncate(false).open(target).map_err(e)?;
+    // never create(true) on a device path: a vanished node must not become a regular file under /dev
+    let dev = target.starts_with("/dev/") || target.to_string_lossy().starts_with(r"\\.\");
+    let mut dst = OpenOptions::new().write(true).create(!dev).truncate(false).open(target).map_err(e)?;
     let pad = !dst.metadata().map_err(e)?.is_file();
     let (mut hasher, mut buf, mut n) = (Sha256::new(), vec![0u8; BLOCK], 0u64);
     loop {
@@ -227,29 +229,46 @@ fn temp(name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("burner-{}-{name}", std::process::id()))
 }
 
+fn sh_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+fn sh_line(exe: &str, args: &[&str]) -> String {
+    std::iter::once(exe).chain(args.iter().copied()).map(sh_quote).collect::<Vec<_>>().join(" ")
+}
+
+/// PowerShell single-quoted literal: only `'` is special, and it is doubled.
+fn ps_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "''"))
+}
+
+fn ps_script(exe: &str, args: &[&str]) -> String {
+    let list = args.iter().map(|a| ps_quote(a)).collect::<Vec<_>>().join(",");
+    format!("Start-Process -Verb RunAs -Wait -FilePath {} -ArgumentList {list}", ps_quote(exe))
+}
+
 /// Re-launch this exe as root with `flag extra... progress cancel`; relays the helper's progress lines.
 pub fn elevated(flag: &str, extra: &[&str], cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?.to_string_lossy().into_owned();
     let (prog, cancel_f) = (temp("progress"), temp("cancel"));
     let _ = std::fs::remove_file(&cancel_f);
     std::fs::write(&prog, "").map_err(|e| e.to_string())?;
-    let q = |s: &str| format!("'{}'", s.replace('\'', "'\\''"));
-    let mut args = vec![q(&exe), flag.to_string()];
-    args.extend(extra.iter().map(|s| q(s)));
-    args.extend([q(&prog.to_string_lossy()), q(&cancel_f.to_string_lossy())]);
+    let (prog_s, cancel_s) = (prog.to_string_lossy().into_owned(), cancel_f.to_string_lossy().into_owned());
+    let mut raw: Vec<&str> = vec![flag];
+    raw.extend(extra);
+    raw.extend([prog_s.as_str(), cancel_s.as_str()]);
     let mut cmd = if cfg!(target_os = "macos") {
-        let sh = args.join(" ").replace('\\', "\\\\").replace('"', "\\\"");
+        let sh = sh_line(&exe, &raw).replace('\\', "\\\\").replace('"', "\\\"");
         let mut c = Command::new("osascript");
         c.args(["-e", &format!("do shell script \"{sh}\" with administrator privileges")]);
         c
     } else if cfg!(windows) {
-        let al = args[1..].iter().map(|a| a.replace('\'', "''")).collect::<Vec<_>>().join(" ");
         let mut c = Command::new("powershell");
-        c.args(["-Command", &format!("Start-Process -Verb RunAs -Wait '{exe}' -ArgumentList \"{al}\"")]);
+        c.args(["-Command", &ps_script(&exe, &raw)]);
         c
     } else {
         let mut c = Command::new("pkexec");
-        c.arg(&exe).args(args[1..].iter().map(|a| a.trim_matches('\'').to_string()));
+        c.arg(&exe).args(&raw); // separate argv entries, no shell
         c
     };
     let mut child = cmd.spawn().map_err(|e| format!("cannot start privileged helper: {e}"))?;
@@ -319,6 +338,25 @@ pub fn helper_main() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn quoting_handles_spaces_and_single_quotes() {
+        assert_eq!(sh_line("/a b/it's", &["--x", "/d/o'k"]), r#"'/a b/it'\''s' '--x' '/d/o'\''k'"#);
+        assert_eq!(
+            ps_script(r"C:\Pro g\b'r.exe", &["--w", r"\\.\PhysicalDrive'1", "C:\\t m\\p"]),
+            r"Start-Process -Verb RunAs -Wait -FilePath 'C:\Pro g\b''r.exe' -ArgumentList '--w','\\.\PhysicalDrive''1','C:\t m\p'"
+        );
+    }
+
+    #[test]
+    fn missing_device_path_errors_and_creates_nothing() {
+        let d = tempfile::tempdir().unwrap();
+        let src = d.path().join("i.img");
+        std::fs::write(&src, vec![1u8; 4096]).unwrap();
+        let dev = Path::new("/dev/burner-no-such-device");
+        assert!(go(&src, dev).is_err());
+        assert!(!dev.exists());
+    }
 
     fn img(n: usize) -> Vec<u8> {
         (0..n).map(|i| (i * 31 % 251) as u8).collect()

@@ -99,6 +99,15 @@ fn sha256_file(path: &std::path::Path) -> std::io::Result<String> {
     Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
 }
 
+/// Ok if `expected` is empty or matches the file's SHA-256; otherwise deletes the file and errors.
+fn verify_or_delete(path: &std::path::Path, expected: &str) -> Result<(), String> {
+    if expected.is_empty() || sha256_file(path).map_err(|e| e.to_string())?.eq_ignore_ascii_case(expected) {
+        return Ok(());
+    }
+    let _ = std::fs::remove_file(path);
+    Err("checksum mismatch: the download was corrupt and has been deleted".into())
+}
+
 /// Downloads into the cache dir (resuming a `.part` file), verifies SHA-256, returns the local path.
 #[tauri::command]
 pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -> Result<String, String> {
@@ -116,17 +125,8 @@ pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -
     let base = entry.url.rsplit('/').next().unwrap_or("image").split('?').next().unwrap_or("image");
     let (dest, part) = (dir.join(format!("{tag}-{base}")), dir.join(format!("{tag}-{base}.part")));
 
-    let verify = |p: &std::path::Path| -> Result<bool, String> {
-        if entry.sha256.is_empty() {
-            return Ok(true);
-        }
-        Ok(sha256_file(p).map_err(|e| e.to_string())?.eq_ignore_ascii_case(&entry.sha256))
-    };
-    if dest.exists() {
-        if verify(&dest)? {
-            return Ok(dest.to_string_lossy().into());
-        }
-        let _ = std::fs::remove_file(&dest);
+    if dest.exists() && verify_or_delete(&dest, &entry.sha256).is_ok() {
+        return Ok(dest.to_string_lossy().into());
     }
 
     let have = std::fs::metadata(&part).map(|m| m.len()).unwrap_or(0);
@@ -162,16 +162,24 @@ pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -
     drop(file);
     let _ = app.emit("progress", Progress { phase: "download".into(), done, total: done });
 
-    if !verify(&part)? {
-        let _ = std::fs::remove_file(&part);
-        return Err("checksum mismatch: the download was corrupt and has been deleted".into());
-    }
+    verify_or_delete(&part, &entry.sha256)?;
     std::fs::rename(&part, &dest).map_err(|e| e.to_string())?;
     Ok(dest.to_string_lossy().into())
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn checksum_mismatch_deletes_match_keeps() {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("x");
+        std::fs::write(&f, "abc").unwrap();
+        let good = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        assert!(super::verify_or_delete(&f, good).is_ok() && f.exists());
+        assert!(super::verify_or_delete(&f, "00").is_err());
+        assert!(!f.exists());
+    }
+
     #[test]
     fn parses_nested_fixture() {
         let l = super::parse_catalog(include_str!("../tests/os_list.json")).unwrap();

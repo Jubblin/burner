@@ -7,7 +7,7 @@
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "Burner", "width": 560, "height": 880, "minWidth": 560, "maxWidth": 560, "minHeight": 560, "resizable": true }
+      { "title": "Burner", "width": 560, "height": 880, "minWidth": 560, "maxWidth": 560, "minHeight": 640, "resizable": true }
     ],
     "security": { "csp": null }
   },
