@@ -39,3 +39,6 @@ Push a `v*` tag (bump `version` in `src-tauri/tauri.conf.json`, `Cargo.toml` fir
 On launch the app checks `latest.json`, downloads in the background, and installs only when no write/verify/backup is running. It never prompts or restarts; the new version runs on the next launch (the Windows installer may relaunch the app itself). A small "Updated to vX" note shows once afterwards.
 
 Setup, secrets and the release checklist: see [RELEASING.md](RELEASING.md).
+
+## Write engine (`writer.rs`)
+`write_image` unmounts the target, re-checks it is not the system disk, writes in 1 MiB blocks (.img/.iso/.gz/.xz/.zip), fsyncs, then re-reads and compares SHA-256. If the device can't be opened it re-launches the app binary as `burner --write-helper …` elevated (macOS osascript, Linux pkexec, Windows PowerShell `RunAs`/UAC); progress/cancel pass through temp files. Automated tests (`cargo test`) cover temp-file targets only. **Real-device write: not yet manually tested** — needs a spare USB stick (never run against an internal disk).
