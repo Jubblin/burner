@@ -36,10 +36,20 @@ pub async fn write_image(
 fn run(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
     ensure_not_system_disk(device)?;
     unmount(device)?;
-    match OpenOptions::new().read(true).write(true).open(device) {
-        Ok(_) => write_to(Path::new(image), Path::new(device), cancel, emit),
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => elevated(image, device, cancel, emit),
-        Err(e) => Err(format!("cannot open {device}: {e}")),
+    if needs_elevation(device, true)? {
+        elevated("--write-helper", &[image, device], cancel, emit)
+    } else {
+        write_to(Path::new(image), Path::new(device), cancel, emit)
+    }
+}
+
+/// Can `path` be opened directly (read, plus write if `write`)? `Ok(true)` = permission denied, so the
+/// caller must re-run the work through `elevated`. Shared by the write and backup paths.
+pub fn needs_elevation(path: &str, write: bool) -> Result<bool, String> {
+    match OpenOptions::new().read(true).write(write).open(path) {
+        Ok(_) => Ok(false),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => Ok(true),
+        Err(e) => Err(format!("cannot open {path}: {e}")),
     }
 }
 
@@ -217,13 +227,16 @@ fn temp(name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("burner-{}-{name}", std::process::id()))
 }
 
-fn elevated(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
+/// Re-launch this exe as root with `flag extra... progress cancel`; relays the helper's progress lines.
+pub fn elevated(flag: &str, extra: &[&str], cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?.to_string_lossy().into_owned();
     let (prog, cancel_f) = (temp("progress"), temp("cancel"));
     let _ = std::fs::remove_file(&cancel_f);
     std::fs::write(&prog, "").map_err(|e| e.to_string())?;
     let q = |s: &str| format!("'{}'", s.replace('\'', "'\\''"));
-    let args = [q(&exe), "--write-helper".into(), q(image), q(device), q(&prog.to_string_lossy()), q(&cancel_f.to_string_lossy())];
+    let mut args = vec![q(&exe), flag.to_string()];
+    args.extend(extra.iter().map(|s| q(s)));
+    args.extend([q(&prog.to_string_lossy()), q(&cancel_f.to_string_lossy())]);
     let mut cmd = if cfg!(target_os = "macos") {
         let sh = args.join(" ").replace('\\', "\\\\").replace('"', "\\\"");
         let mut c = Command::new("osascript");
@@ -272,10 +285,11 @@ fn elevated(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progre
 /// Entry for the elevated child. Returns true if this process was a helper (caller should exit).
 pub fn helper_main() -> bool {
     let a: Vec<String> = std::env::args().collect();
-    if a.get(1).map(String::as_str) != Some("--write-helper") || a.len() < 6 {
+    let flag = a.get(1).map(String::as_str).unwrap_or("");
+    if !matches!(flag, "--write-helper" | "--read-helper") || a.len() < 6 {
         return false;
     }
-    let (prog, cancel_f) = (a[4].clone(), a[5].clone());
+    let (prog, cancel_f) = (a[a.len() - 2].clone(), a[a.len() - 1].clone());
     let cancel = AtomicBool::new(false);
     let log = |s: String| {
         if let Ok(mut f) = OpenOptions::new().append(true).open(&prog) {
@@ -289,7 +303,13 @@ pub fn helper_main() -> bool {
         log(format!("{} {} {}", p.phase, p.done, p.total));
     };
     // re-check in the privileged process too, right before writing
-    let r = ensure_not_system_disk(&a[3]).and_then(|_| write_to(Path::new(&a[2]), Path::new(&a[3]), &cancel, &emit));
+    let r = if flag == "--write-helper" {
+        ensure_not_system_disk(&a[3]).and_then(|_| write_to(Path::new(&a[2]), Path::new(&a[3]), &cancel, &emit))
+    } else {
+        crate::backup::copy_image(&a[2], &a[3], a[4] == "1", &cancel, |done, total| {
+            emit(Progress { phase: "backup".into(), done, total })
+        })
+    };
     if let Err(m) = &r {
         log(format!("ERR {m}"));
     }

@@ -73,7 +73,7 @@ $('#scanAgain').onclick = scan;
 // ---- write
 function updateWrite() {
   const t = S.target, name = t?.name ?? '';
-  $$('.dn').forEach((e) => (e.textContent = name));
+  $$('.dn').forEach((e) => (e.textContent = name || 'the selected drive'));
   $('#confirmText').placeholder = name;
   $('#confirmText').disabled = $('#confirmBox').disabled = !t;
   // Write stays disabled until the exact drive name is typed or the box is ticked.
