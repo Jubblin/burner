@@ -38,13 +38,4 @@ Push a `v*` tag (bump `version` in `src-tauri/tauri.conf.json`, `Cargo.toml` fir
 ### Auto-update
 On launch the app checks `latest.json`, downloads in the background, and installs only when no write/verify/backup is running. It never prompts or restarts; the new version runs on the next launch (the Windows installer may relaunch the app itself). A small "Updated to vX" note shows once afterwards.
 
-One-time setup:
-1. `npm run tauri signer generate -- -w ~/.tauri/burner.key`
-2. Paste the printed public key into `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` and set `endpoints` to your repo's `releases/latest/download/latest.json`.
-3. Add the secrets below under GitHub → Settings → Secrets → Actions. Never commit the key.
-
-| Secret | Purpose |
-| --- | --- |
-| `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Updater signature (all platforms; Linux AppImage needs only this) |
-| `APPLE_CERTIFICATE` (base64 .p12 of Developer ID Application), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific), `APPLE_TEAM_ID` | macOS signing + notarization |
-| `WINDOWS_CERTIFICATE` (base64 .pfx Authenticode cert), `WINDOWS_CERTIFICATE_PASSWORD` | Windows signing: workflow imports the pfx and passes its thumbprint to Tauri (`certificateThumbprint`, SHA-256, DigiCert timestamp) |
+Setup, secrets and the release checklist: see [RELEASING.md](RELEASING.md).
