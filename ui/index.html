@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burner</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="window">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-mode="write" aria-selected="true">Write</button>
+    <button class="tab" role="tab" data-mode="backup" aria-selected="false">Backup</button>
+    <button class="tab" role="tab" data-mode="download" aria-selected="false">Download OS</button>
+    <span class="spacer"></span>
+    <button class="theme-btn" id="theme" title="Switch between Auto (follows the OS), Light and Dark">Theme: Auto</button>
+  </div>
+
+  <!-- WRITE -->
+  <main data-mode="write">
+    <div>
+      <div class="step-header"><span class="num">1</span><h2>Source</h2></div>
+      <div class="step-body">
+        <div class="file" id="imageFile" hidden><span id="imageName"></span><span class="mono" id="imageSize"></span></div>
+        <button class="btn btn-quiet or" id="chooseImage">Choose an image</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="step-header"><span class="num">2</span><h2>Target</h2></div>
+      <div class="step-body" id="drives"></div>
+      <div class="step-body" id="noDrives" hidden>
+        <div class="empty">
+          <h2>No removable drives found</h2>
+          <p class="muted" style="margin:var(--xs) 0 var(--md)">Plug in a USB drive or SD card. Your system disk is never shown.</p>
+          <button class="btn btn-primary" id="scanAgain">Scan again</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="step-header"><span class="num">3</span><h2>Write</h2></div>
+      <div class="step-body">
+        <div class="confirm" id="confirmBlock">
+          <label class="label" for="confirmText">Type the drive name to confirm</label>
+          <input class="input mono" id="confirmText" autocomplete="off" spellcheck="false">
+          <label class="toggle"><input type="checkbox" id="confirmBox"> <span>I understand every file on <b class="dn"></b> will be erased</span></label>
+          <button class="btn btn-danger" id="writeBtn" disabled>Erase and write</button>
+        </div>
+
+        <div class="pbar" id="writeProgress" hidden>
+          <div class="progress-info"><span class="phase"></span><span class="mono pct"></span></div>
+          <div class="track"><div class="bar"></div></div>
+          <div class="progress-info muted"><span class="mono bytes"></span><span class="mono rate"></span></div>
+          <button class="btn btn-quiet or" id="cancelWrite">Cancel</button>
+        </div>
+
+        <div id="success" hidden>
+          <h1 class="ok">Done. Verified.</h1>
+          <p style="margin:0"><span class="in"></span> was written to <b class="dn"></b> and read back correctly.</p>
+          <div class="mono muted" id="successMeta"></div>
+          <div class="row"><button class="btn btn-quiet" id="again">Write another</button></div>
+        </div>
+
+        <div id="error" hidden>
+          <div class="notice" role="alert">
+            <svg style="color:var(--warning)" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 18 16.5H2z"/><path d="M10 8v4M10 14.3v.2"/></svg>
+            <div>
+              <b class="err" id="errTitle">Write failed</b>
+              <p style="margin:var(--xs) 0 0" id="errMsg"></p>
+              <div class="mono muted" style="margin-top:var(--xs)" id="errPath"></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:var(--sm)"><button class="btn btn-primary" id="retry">Try again</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- BACKUP -->
+  <main data-mode="backup" hidden>
+    <div>
+      <div class="step-header"><span class="num">1</span><h2>Drive to back up</h2></div>
+      <div class="step-body" id="backupDrives"></div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">2</span><h2>Output file</h2></div>
+      <div class="step-body">
+        <div class="row" style="flex-wrap:nowrap"><input class="input mono" style="flex:1" id="backupOut" placeholder="~/Backups/drive.img" aria-label="Output file"><button class="btn btn-quiet" id="browseOut">Browse</button></div>
+        <label class="toggle"><input type="checkbox" id="compress" checked> <span>Compress with gzip <span class="muted">(smaller file, slower)</span></span></label>
+      </div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">3</span><h2>Back up</h2></div>
+      <div class="step-body">
+        <button class="btn btn-primary or" id="startBackup" disabled>Start backup</button>
+        <div class="pbar" id="backupProgress" hidden>
+          <div class="progress-info"><span class="phase">Reading drive</span><span class="mono pct"></span></div>
+          <div class="track"><div class="bar"></div></div>
+          <div class="progress-info muted"><span class="mono bytes"></span><span class="mono rate"></span></div>
+          <button class="btn btn-quiet or" id="cancelBackup">Cancel</button>
+        </div>
+        <p id="backupMsg" class="muted" style="margin:0" hidden></p>
+      </div>
+    </div>
+  </main>
+
+  <!-- DOWNLOAD -->
+  <main data-mode="download" hidden>
+    <div>
+      <div class="step-header"><span class="num">1</span><h2>Choose an OS</h2></div>
+      <div class="step-body" role="radiogroup" id="catalog"></div>
+    </div>
+    <div>
+      <div class="step-header"><span class="num">2</span><h2>Download</h2></div>
+      <div class="step-body">
+        <button class="btn btn-primary or" id="startDownload" disabled>Download</button>
+        <div class="pbar" id="downloadProgress" hidden>
+          <div class="progress-info"><span class="phase"></span><span class="mono pct"></span></div>
+          <div class="track"><div class="bar"></div></div>
+          <div class="progress-info muted"><span class="mono bytes"></span><span class="mono rate"></span></div>
+          <button class="btn btn-quiet or" id="cancelDownload">Cancel</button>
+        </div>
+        <div class="row" id="downloadDone" hidden><button class="btn btn-primary" id="useImage">Use this image</button></div>
+        <p id="downloadMsg" class="muted" style="margin:0" hidden></p>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

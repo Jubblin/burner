@@ -25,3 +25,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+node_modules/
+src-tauri/target/
+src-tauri/gen/
