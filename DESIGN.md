@@ -12,6 +12,25 @@ colors:
   danger: "#B3261E"
   success: "#1E7A46"
   warning: "#A35F00"
+  dark-background: "#16181B"
+  dark-surface: "#1F2227"
+  dark-text: "#ECEAE6"
+  dark-text-muted: "#9AA0A8"
+  dark-primary: "#4FBFA9"
+  dark-primary-hover: "#6ACDB9"
+  dark-primary-active: "#3AA891"
+  dark-on-primary: "#0B1F1B"
+  dark-danger: "#FF6B61"
+  dark-danger-hover: "#FF857C"
+  dark-danger-active: "#E5564D"
+  dark-on-danger: "#1A0806"
+  dark-success: "#4CC081"
+  dark-warning: "#E8A33D"
+  dark-border: "#32363D"
+  dark-border-hover: "#4B515A"
+  dark-progress-track: "#2A3A37"
+  dark-disabled: "#2B2F35"
+  dark-disabled-text: "#7C828A"
 typography:
   heading-lg:
     fontFamily: Satoshi
@@ -76,7 +95,7 @@ components:
 # Burner Design System
 
 ## Overview
-Burner is a calm, precise disk image tool. Creative north star: Industrial/Utilitarian, softened; a quiet lab-instrument feel. The memorable thing: **"It will never wipe the wrong drive."** Mode: Operate (task-focused, no marketing). Decoration is minimal: no gradients, no glow. Light theme only (desk, room light). Red only ever means "this will be erased".
+Burner is a calm, precise disk image tool. Creative north star: Industrial/Utilitarian, softened; a quiet lab-instrument feel. The memorable thing: **"It will never wipe the wrong drive."** Mode: Operate (task-focused, no marketing). Decoration is minimal: no gradients, no glow. Light is the default theme (desk, room light). Red only ever means "this will be erased".
 
 ## Colors
 Restrained palette, warm-tinted neutrals.
@@ -86,6 +105,12 @@ Restrained palette, warm-tinted neutrals.
 - danger `#B3261E`: ONLY the target drive card and the final Write button
 - success `#1E7A46`
 - warning `#A35F00`: errors use warning plus an icon, never red
+
+### Dark theme
+Light is the default. Dark follows the OS setting (`prefers-color-scheme`) with a manual override in settings (app decision, to be confirmed in the UI task). Tokens are the `dark-` colors in the front matter. Danger remains the only red. No glow on dark: depth comes from 1px borders (`dark-border`, `dark-border-hover`) and surface tint only.
+- Contrast on dark-background: text 14.8, muted 6.8, primary 7.9, danger 6.4, success 7.8, warning 8.3.
+- The dark danger button uses near-black `dark-on-danger` text; white on the lifted red is only 2.8.
+- Progress track `dark-progress-track`; disabled fill `dark-disabled` with `dark-disabled-text`.
 
 ## Typography
 - Satoshi (Fontshare, free commercial use; 400/500/700) for headings, UI, and body.
@@ -129,3 +154,4 @@ Don't:
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-10-09 | Initial design system created | Created by /design-consultation from product context (no competitor research) |
+| 2026-10-09 | Added dark theme tokens; light stays default | Approved dark mockup; OS-follow with manual override, danger still the only red |
