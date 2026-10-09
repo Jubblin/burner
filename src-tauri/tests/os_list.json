@@ -1,0 +1,7 @@
+{"imager":{"latest_version":"1.9.0"},"os_list":[
+{"name":"Raspberry Pi OS (64-bit)","description":"Debian-based","url":"https://example.invalid/rpi64.img.xz","extract_size":3000,"extract_sha256":"aa","image_download_size":1200,"image_download_sha256":"bb"},
+{"name":"Other general-purpose OS","description":"Group","subitems":[
+ {"name":"Ubuntu","description":"Desktop","url":"https://example.invalid/ubuntu.img.xz","extract_size":9,"image_download_sha256":"cc"},
+ {"name":"More","description":"Nested","subitems":[{"name":"Deep","url":"https://example.invalid/deep.img","extract_size":5,"extract_sha256":"dd"}]}]},
+{"name":"Erase","description":"No url"}
+]}
