@@ -16,10 +16,19 @@
   --border:#D9D5CD; --border-hover:#A9A59C; --track:#DCE8E5; --disabled:#C9CCCF; --disabled-text:#6B7078;
   --r-sm:4px; --r-md:8px; --r-lg:12px;
   --xs:4px; --sm:8px; --md:16px; --lg:24px; --xl:32px; --xxl:48px;
+  --on-danger:#FFFFFF; --warn-bg:var(--surface); --window-bg:#E4E2DD;
   --sans:Satoshi,"Helvetica Neue",Arial,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
+[data-theme=dark]{
+  --background:#16181B; --surface:#1F2227; --text:#ECEAE6; --text-muted:#9AA0A8;
+  --primary:#4FBFA9; --primary-hover:#6ACDB9; --primary-active:#3AA891; --on-primary:#0B1F1B;
+  --danger:#FF6B61; --danger-hover:#FF857C; --danger-active:#E5564D; --on-danger:#1A0806;
+  --success:#4CC081; --warning:#E8A33D;
+  --border:#32363D; --border-hover:#4B515A; --track:#2A3A37; --disabled:#2B2F35; --disabled-text:#7C828A;
+  --window-bg:#0F1113; color-scheme:dark;
+}
 *{box-sizing:border-box}
-body{margin:0;background:#E4E2DD;font:400 14px/1.5 var(--sans);color:var(--text);padding:var(--xl) var(--sm) 96px}
+body{margin:0;background:var(--window-bg);font:400 14px/1.5 var(--sans);color:var(--text);padding:var(--xl) var(--sm) 96px}
 .window{width:min(560px,100%);margin:0 auto;background:var(--background);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
 .tabs{display:flex;gap:var(--lg);padding:0 var(--lg);border-bottom:1px solid var(--border);background:var(--surface)}
 .tab{font:500 14px var(--sans);color:var(--text-muted);background:none;border:0;border-bottom:2px solid transparent;padding:var(--md) 0 14px;cursor:pointer;border-radius:0}
@@ -35,7 +44,7 @@ button,input,select{font-family:var(--sans)}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .btn{font:500 14px var(--sans);padding:var(--sm) var(--md);border-radius:var(--r-md);border:1px solid transparent;cursor:pointer;color:var(--on-primary)}
 .btn-primary{background:var(--primary)} .btn-primary:hover{background:var(--primary-hover)} .btn-primary:active{background:var(--primary-active)}
-.btn-danger{background:var(--danger)} .btn-danger:hover{background:var(--danger-hover)} .btn-danger:active{background:var(--danger-active)}
+.btn-danger{background:var(--danger);color:var(--on-danger)} .btn-danger:hover{background:var(--danger-hover)} .btn-danger:active{background:var(--danger-active)}
 .btn-quiet{background:var(--surface);color:var(--text);border-color:var(--border)} .btn-quiet:hover{border-color:var(--border-hover)}
 .btn:disabled{background:var(--disabled);color:var(--disabled-text);cursor:not-allowed;border-color:transparent}
 .row{display:flex;gap:var(--sm);align-items:center;flex-wrap:wrap}
@@ -157,7 +166,7 @@ button,input,select{font-family:var(--sans)}
 
         <div data-show="error">
           <div class="notice" role="alert">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#A35F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 18 16.5H2z"/><path d="M10 8v4M10 14.3v.2"/></svg>
+            <svg style="color:var(--warning)" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 18 16.5H2z"/><path d="M10 8v4M10 14.3v.2"/></svg>
             <div>
               <b class="err">Verification failed</b>
               <p style="margin:var(--xs) 0 0">Data read back from <b>Kingston DT 32 GB</b> does not match the image. The drive may be failing or was removed.</p>
@@ -233,6 +242,7 @@ button,input,select{font-family:var(--sans)}
   <button data-state="empty" data-m="write" aria-pressed="false">No drives</button>
   <button data-state="backup" data-m="backup" aria-pressed="false">Backup</button>
   <button data-state="download" data-m="download" aria-pressed="false">Download OS</button>
+  <button id="theme" aria-pressed="false">Theme: Light</button>
 </nav>
 
 <script>
@@ -253,11 +263,11 @@ function show(s){
   $$('main').forEach(m=>m.hidden=m.dataset.mode!==mode);
   $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.mode===mode));
   $$('[data-show]').forEach(e=>e.hidden=mode!=='write'||!e.dataset.show.split(' ').includes(s));
-  $$('.statebar button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.state===s));
+  $$('.statebar button[data-state]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.state===s));
   if(s==='enabled'){box.checked=true;update();}
   if(s==='disabled'){txt.value='';box.checked=false;update();}
 }
-$$('.statebar button').forEach(b=>b.onclick=()=>show(b.dataset.state));
+$$('.statebar button[data-state]').forEach(b=>b.onclick=()=>show(b.dataset.state));
 $$('.tab').forEach(t=>t.onclick=()=>show(t.dataset.mode==='write'?'disabled':t.dataset.mode));
 txt.oninput=box.onchange=update;
 $$('#drives .card').forEach(c=>c.onclick=()=>{
@@ -271,6 +281,9 @@ $$('#drives .card').forEach(c=>c.onclick=()=>{
 });
 $$('.card.pick').forEach(c=>c.onclick=()=>$$('.card.pick').forEach(o=>o.setAttribute('aria-pressed',o===c)));
 btn.onclick=()=>show('writing');
+const setTheme=d=>{document.documentElement.dataset.theme=d?'dark':'light';$('#theme').textContent='Theme: '+(d?'Dark':'Light');$('#theme').setAttribute('aria-pressed',d)};
+$('#theme').onclick=()=>setTheme(document.documentElement.dataset.theme!=='dark');
+const q=new URLSearchParams(location.search);setTheme(q.get('theme')==='dark');
 show(location.hash.slice(1)||'disabled');
 </script>
 </body>
