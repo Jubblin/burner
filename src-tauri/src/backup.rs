@@ -1,3 +1,4 @@
+use crate::writer::{elevated, needs_elevation};
 use crate::{Jobs, Progress};
 use flate2::{write::GzEncoder, Compression};
 use std::fs::File;
@@ -6,8 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 /// Read `src` fully into `out` (gzip if `compress`), calling `progress(done,total)` per chunk.
-/// ponytail: plain File::open for the source; privileged raw-device read (see writer.rs) to be merged later.
-fn copy_image(
+pub fn copy_image(
     src: &str,
     out: &str,
     compress: bool,
@@ -62,6 +62,19 @@ pub async fn backup_drive(
     jobs.cancel.store(false, Ordering::SeqCst);
     tauri::async_runtime::spawn_blocking(move || {
         let jobs = app.state::<Jobs>();
+        let emit = |p: Progress| {
+            let _ = app.emit("progress", p);
+        };
+        if needs_elevation(&device_path, false)? {
+            // create the output as the user so the root helper (which truncates it) leaves ownership alone
+            File::create(&output_path).map_err(|e| format!("create {output_path}: {e}"))?;
+            let c = if compress { "1" } else { "0" };
+            let r = elevated("--read-helper", &[&device_path, &output_path, c], &jobs.cancel, &emit);
+            if r.is_err() {
+                let _ = std::fs::remove_file(&output_path);
+            }
+            return r;
+        }
         copy_image(&device_path, &output_path, compress, &jobs.cancel, |done, total| {
             let _ = app.emit("progress", Progress { phase: "backup".into(), done, total });
         })
@@ -74,6 +87,15 @@ pub async fn backup_drive(
 mod tests {
     use super::*;
     use flate2::read::GzDecoder;
+
+    #[test]
+    fn needs_elevation_checks_open() {
+        let f = std::env::temp_dir().join(format!("burner-ne-{}", std::process::id()));
+        std::fs::write(&f, b"x").unwrap();
+        assert_eq!(needs_elevation(f.to_str().unwrap(), true), Ok(false));
+        std::fs::remove_file(&f).unwrap();
+        assert!(needs_elevation(f.to_str().unwrap(), false).is_err());
+    }
 
     #[test]
     fn backup_matches_source() {
