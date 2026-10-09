@@ -48,6 +48,7 @@ fn cancel_job(jobs: State<'_, Jobs>) {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Jobs::default())
         .invoke_handler(tauri::generate_handler![
             drives::list_drives,
