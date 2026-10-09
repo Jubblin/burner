@@ -12,7 +12,7 @@ use tauri::{AppHandle, Emitter, State};
 
 #[derive(Default)]
 pub struct Jobs {
-    cancel: AtomicBool,
+    pub cancel: AtomicBool,
 }
 
 #[derive(Serialize, Clone)]
