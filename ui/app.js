@@ -158,3 +158,24 @@ $('#useImage').onclick = () => { setImage(S.downloaded, S.os.size_bytes); setMod
 
 scan();
 loadCatalog();
+
+// ---- silent auto-update: download in background, install only when idle, never restart
+(async () => {
+  try {
+    const update = await window.__TAURI__.updater.check();
+    if (!update) return;
+    await update.download();
+    while (S.busy) await new Promise((r) => setTimeout(r, 5000));
+    await update.install(); // applies on next launch (Windows may relaunch itself via its installer)
+    localStorage.setItem('updatedTo', update.version);
+  } catch (e) { /* offline, unsigned dev build, or no release: stay silent */ }
+})();
+{
+  const v = localStorage.getItem('updatedTo');
+  if (v) {
+    localStorage.removeItem('updatedTo');
+    window.__TAURI__.app.getVersion().then((cur) => {
+      if (cur === v) { const n = $('#downloadMsg'); n.textContent = `Updated to v${v}`; n.hidden = false; }
+    });
+  }
+}
