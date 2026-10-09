@@ -26,3 +26,7 @@ Layout: `ui/` is vanilla HTML/CSS/JS (no bundler, fonts bundled in `ui/fonts`); 
 Errors are `Err(String)`. Long commands emit the Tauri event `progress` with `{phase: string, done: u64, total: u64}`.
 
 The UI keeps Write disabled until the typed name equals the target drive name (or the "I understand" box is ticked); `confirm_name` carries that name so the backend can re-check it.
+
+## Building
+
+CI (`.github/workflows/ci.yml`) runs `cargo test` and `cargo clippy` on pull requests. Pushing a `v*` tag runs `release.yml`, which builds Tauri bundles for Windows, macOS (universal) and Linux and uploads them as per-OS workflow artifacts.
