@@ -48,3 +48,6 @@ Setup, secrets and the release checklist: see [RELEASING.md](RELEASING.md).
 
 ## Write engine (`writer.rs`)
 `write_image` unmounts the target, re-checks it is not the system disk, writes in 1 MiB blocks (.img/.iso/.gz/.xz/.zip), fsyncs, then re-reads and compares SHA-256. If the device can't be opened it re-launches the app binary as `burner --write-helper …` elevated (macOS osascript, Linux pkexec, Windows PowerShell `RunAs`/UAC); progress/cancel pass through temp files. Automated tests (`cargo test`) cover temp-file targets only. **Real-device write: not yet manually tested** — needs a spare USB stick (never run against an internal disk).
+
+## License
+Licensed under the Apache License 2.0, see [LICENSE](LICENSE). Unless you state otherwise, any contribution you intentionally submit for inclusion is accepted under the same licence (Apache-2.0 section 5). Bundled fonts and dependencies carry their own licences: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
