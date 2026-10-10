@@ -2,6 +2,7 @@ use crate::writer::{classify_io, elevated, needs_elevation};
 use crate::{Jobs, Progress};
 use flate2::{write::GzEncoder, Compression};
 use std::fs::File;
+use std::path::Path;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -61,7 +62,10 @@ pub async fn backup_drive(
         return Err("device and output path are required".into());
     }
     jobs.cancel.store(false, Ordering::SeqCst);
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::notify::on_start(&app);
+    let name = Path::new(&output_path).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let notify_app = app.clone();
+    let r = tauri::async_runtime::spawn_blocking(move || {
         let jobs = app.state::<Jobs>();
         let emit = |p: Progress| {
             let _ = app.emit("progress", p);
@@ -81,7 +85,10 @@ pub async fn backup_drive(
         })
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+    .and_then(|r| r);
+    crate::notify::on_done(&notify_app, crate::notify::Job::Backup, &name, &r);
+    r
 }
 
 #[cfg(test)]

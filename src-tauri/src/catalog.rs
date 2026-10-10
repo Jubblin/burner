@@ -112,6 +112,18 @@ fn verify_or_delete(path: &std::path::Path, expected: &str) -> Result<(), String
 #[tauri::command]
 pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -> Result<String, String> {
     jobs.cancel.store(false, std::sync::atomic::Ordering::SeqCst);
+    crate::notify::on_start(&app);
+    let r = download(&app, &jobs, &id).await;
+    let (name, res) = match r {
+        Ok((n, p)) => (n, Ok(p)),
+        Err(e) => (String::new(), Err(e)),
+    };
+    crate::notify::on_done(&app, crate::notify::Job::Download, &name, &res.clone().map(|_| ()));
+    res
+}
+
+/// Returns (OS name, local path).
+async fn download(app: &AppHandle, jobs: &Jobs, id: &str) -> Result<(String, String), String> {
     let entry = fetch_catalog(app.clone())
         .await?
         .into_iter()
@@ -126,7 +138,7 @@ pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -
     let (dest, part) = (dir.join(format!("{tag}-{base}")), dir.join(format!("{tag}-{base}.part")));
 
     if dest.exists() && verify_or_delete(&dest, &entry.sha256).is_ok() {
-        return Ok(dest.to_string_lossy().into());
+        return Ok((entry.name.clone(), dest.to_string_lossy().into()));
     }
 
     let have = std::fs::metadata(&part).map(|m| m.len()).unwrap_or(0);
@@ -164,7 +176,7 @@ pub async fn download_image(app: AppHandle, jobs: State<'_, Jobs>, id: String) -
 
     verify_or_delete(&part, &entry.sha256)?;
     std::fs::rename(&part, &dest).map_err(|e| e.to_string())?;
-    Ok(dest.to_string_lossy().into())
+    Ok((entry.name.clone(), dest.to_string_lossy().into()))
 }
 
 #[cfg(test)]

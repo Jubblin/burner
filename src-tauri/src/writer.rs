@@ -27,10 +27,13 @@ pub async fn write_image(
         return Err("image, device and confirmation are required".into());
     }
     jobs.cancel.store(false, Ordering::SeqCst);
+    crate::notify::on_start(&app);
     // ponytail: blocks one async worker for the job's duration; cancel_job is a sync command so it still runs.
-    run(&image_path, &device_path, &jobs.cancel, &|p| {
+    let r = run(&image_path, &device_path, &jobs.cancel, &|p| {
         let _ = app.emit("progress", p);
-    })
+    });
+    crate::notify::on_done(&app, crate::notify::Job::Write, &confirm_name, &r);
+    r
 }
 
 fn run(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
