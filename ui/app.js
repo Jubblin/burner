@@ -9,6 +9,10 @@ const clock = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStar
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const base = (p) => p.split(/[\\/]/).pop();
 
+// Job errors from Rust are `drive_removed: <OS detail>` when the device vanished mid-job.
+const isRemoved = (e) => String(e).startsWith('drive_removed:');
+const removedMsg = (job) => `The drive was removed during the ${job}. Whatever is on it is incomplete: reinsert it and ${job === 'backup' ? 'back it up' : 'write'} again.`;
+
 const S = { drives: [], target: null, image: null, backupTarget: null, os: null, catalog: [], busy: false, lastPhase: null };
 
 // ---- modes
@@ -105,8 +109,9 @@ $('#writeBtn').onclick = async () => {
     $('#successMeta').textContent = `${t.path} · ${clock((performance.now() - t1) / 1000)}`;
     $('#success').hidden = false;
   } catch (e) {
-    $('#errTitle').textContent = e === 'cancelled' ? 'Write cancelled' : 'Write failed';
-    $('#errMsg').textContent = String(e);
+    const gone = isRemoved(e);
+    $('#errTitle').textContent = e === 'cancelled' ? 'Write cancelled' : gone ? 'Drive removed' : 'Write failed';
+    $('#errMsg').textContent = gone ? removedMsg('write') : String(e);
     $('#errPath').textContent = t.path;
     $('#error').hidden = false;
   }
@@ -123,12 +128,20 @@ $('#browseOut').onclick = async () => {
   if (p) { $('#backupOut').value = p; updateBackup(); }
 };
 $('#startBackup').onclick = async () => {
-  const m = $('#backupMsg'); m.hidden = true;
+  const m = $('#backupMsg'); m.hidden = true; m.className = 'muted';
   $('#startBackup').disabled = true;
   try {
     await run($('#backupProgress'), () => invoke('backup_drive', { devicePath: S.backupTarget.path, outputPath: $('#backupOut').value.trim(), compress: $('#compress').checked }));
     m.textContent = 'Backup finished.';
-  } catch (e) { m.textContent = e === 'cancelled' ? 'Backup cancelled.' : `Backup failed: ${e}`; }
+  } catch (e) {
+    if (isRemoved(e)) {
+      // amber warning with icon (never red) and a Try again button back to idle
+      const retry = el('button', 'btn btn-quiet', 'Try again');
+      retry.onclick = () => { m.hidden = true; scan(); };
+      m.className = 'err';
+      m.replaceChildren($('#error svg').cloneNode(true), ' ', removedMsg('backup'), ' ', retry);
+    } else m.textContent = e === 'cancelled' ? 'Backup cancelled.' : `Backup failed: ${e}`;
+  }
   m.hidden = false; updateBackup();
 };
 

@@ -53,9 +53,35 @@ pub fn needs_elevation(path: &str, write: bool) -> Result<bool, String> {
     }
 }
 
+/// Stable error code the UI keys on; the job error string is `drive_removed: <OS detail>`.
+pub const DRIVE_REMOVED: &str = "drive_removed";
+
+/// Turn an I/O failure on `device` into the job error string. If the OS error means the device went
+/// away it becomes `drive_removed: ..`; ambiguous errors only do so when re-enumerating drives no
+/// longer lists `device`. Shared by the write, verify and backup paths.
+pub fn classify_io(e: &std::io::Error, device: &Path) -> String {
+    classify_with(e, device, || crate::drives::list_drives(Some(true)).ok().map(|v| v.into_iter().map(|d| d.path).collect()))
+}
+
+fn classify_with(e: &std::io::Error, device: &Path, listed: impl FnOnce() -> Option<Vec<String>>) -> String {
+    // ENXIO/ENODEV; ERROR_NO_SUCH_DEVICE/ERROR_DEVICE_NOT_CONNECTED: the device is gone by definition
+    let gone = cfg!(unix) && matches!(e.raw_os_error(), Some(6 | 19)) || cfg!(windows) && matches!(e.raw_os_error(), Some(433 | 1167));
+    // EIO; NotFound after open; ERROR_FILE_NOT_FOUND/ERROR_INVALID_HANDLE: only if the drive list agrees
+    let maybe = e.kind() == std::io::ErrorKind::NotFound
+        || cfg!(unix) && e.raw_os_error() == Some(5)
+        || cfg!(windows) && matches!(e.raw_os_error(), Some(2 | 6));
+    let removed = gone
+        || maybe && {
+            // macOS raw nodes (/dev/rdiskN) are listed as /dev/diskN
+            let want = device.to_string_lossy().replace("/dev/rdisk", "/dev/disk");
+            listed().is_some_and(|l| !l.contains(&want))
+        };
+    if removed { format!("{DRIVE_REMOVED}: {e}") } else { e.to_string() }
+}
+
 /// Core engine: stream (decompressed) image to `target`, flush, then verify by SHA-256 read-back.
 pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
-    let e = |e: std::io::Error| e.to_string();
+    let e = |err: std::io::Error| classify_io(&err, target);
     let pos = Arc::new(AtomicU64::new(0));
     let (mut src, total) = open_source(image, pos.clone())?;
     // never create(true) on a device path: a vanished node must not become a regular file under /dev
@@ -415,6 +441,42 @@ mod tests {
         std::fs::write(&src, img(BLOCK)).unwrap();
         let r = write_to(&src, &d.path().join("t"), &AtomicBool::new(true), &|_| {});
         assert_eq!(r.unwrap_err(), "cancelled");
+    }
+
+    #[test]
+    fn classifier_maps_gone_devices_and_leaves_others() {
+        let none = || -> Option<Vec<String>> { panic!("no enumeration for definite or unrelated errors") };
+        let dev = Path::new("/dev/sdx");
+        #[cfg(unix)]
+        for code in [6, 19] {
+            let m = classify_with(&std::io::Error::from_raw_os_error(code), dev, none);
+            assert!(m.starts_with("drive_removed: "), "{m}");
+        }
+        #[cfg(windows)]
+        for code in [433, 1167] {
+            let m = classify_with(&std::io::Error::from_raw_os_error(code), dev, none);
+            assert!(m.starts_with("drive_removed: "), "{m}");
+        }
+        let denied = std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+        assert_eq!(classify_with(&denied, dev, none), denied.to_string());
+        let full = std::io::Error::other("no space left");
+        assert_eq!(classify_with(&full, dev, none), "no space left");
+    }
+
+    #[test]
+    fn classifier_uses_injected_drive_list_for_ambiguous_errors() {
+        let nf = std::io::Error::from(std::io::ErrorKind::NotFound);
+        let (dev, gone) = (Path::new("/dev/rdisk4"), || Some(vec!["/dev/disk5".to_string()]));
+        assert!(classify_with(&nf, dev, gone).starts_with("drive_removed: "));
+        let still = || Some(vec!["/dev/disk4".to_string()]);
+        assert_eq!(classify_with(&nf, dev, still), nf.to_string());
+        assert_eq!(classify_with(&nf, dev, || None), nf.to_string()); // enumeration failed: keep error
+        #[cfg(unix)]
+        {
+            let eio = std::io::Error::from_raw_os_error(5);
+            assert!(classify_with(&eio, dev, gone).starts_with("drive_removed: "));
+            assert_eq!(classify_with(&eio, dev, still), eio.to_string());
+        }
     }
 
     #[test]
