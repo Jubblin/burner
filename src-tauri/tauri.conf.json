@@ -19,7 +19,7 @@
   "plugins": {
     "updater": {
       "pubkey": "REPLACE_WITH_CONTENTS_OF_UPDATER_PUBLIC_KEY_FILE",
-      "endpoints": ["https://github.com/OWNER/REPO/releases/latest/download/latest.json"],
+      "endpoints": ["https://github.com/Jubblin/burner/releases/latest/download/latest.json"],
       "windows": { "installMode": "passive" }
     }
   }
