@@ -75,5 +75,6 @@ button,input,select{font-family:var(--sans)}
 .tabs .spacer{flex:1}
 .theme-btn{font:500 12px var(--sans);color:var(--text-muted);background:none;border:0;cursor:pointer;padding:var(--md) 0 14px;border-radius:0}
 .theme-btn:hover{color:var(--text)}
+.theme-btn+.theme-btn{margin-left:var(--md)}
 body{padding:0} .window{width:100%;min-height:100vh;border:0;border-radius:0}
 .pbar{display:flex;flex-direction:column;gap:var(--sm)}

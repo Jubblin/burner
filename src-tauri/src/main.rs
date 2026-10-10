@@ -3,6 +3,7 @@
 mod backup;
 mod catalog;
 mod drives;
+mod notify;
 mod writer;
 
 use serde::Serialize;
@@ -13,6 +14,8 @@ use tauri::{AppHandle, Emitter, State};
 #[derive(Default)]
 pub struct Jobs {
     pub cancel: AtomicBool,
+    /// Notifications default on; the UI sets this from its saved toggle.
+    pub notify_off: AtomicBool,
 }
 
 #[derive(Serialize, Clone)]
@@ -51,6 +54,7 @@ fn main() {
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Jobs::default())
         .invoke_handler(tauri::generate_handler![
@@ -60,6 +64,7 @@ fn main() {
             catalog::fetch_catalog,
             catalog::download_image,
             cancel_job,
+            notify::set_notifications,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Burner");
