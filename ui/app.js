@@ -15,6 +15,15 @@ const removedMsg = (job) => `The drive was removed during the ${job}. Whatever i
 
 const S = { drives: [], target: null, image: null, backupTarget: null, os: null, catalog: [], busy: false, lastPhase: null };
 
+// ---- notifications (saved locally like the theme override; Rust reads the flag when a job ends)
+const notifOn = () => localStorage.getItem('notifications') !== 'off';
+const syncNotif = () => {
+  $('#notif').textContent = 'Notifications: ' + (notifOn() ? 'On' : 'Off');
+  invoke('set_notifications', { on: notifOn() });
+};
+$('#notif').onclick = () => { localStorage.setItem('notifications', notifOn() ? 'off' : 'on'); syncNotif(); };
+syncNotif();
+
 // ---- modes
 function setMode(m) {
   $$('main').forEach((x) => (x.hidden = x.dataset.mode !== m));

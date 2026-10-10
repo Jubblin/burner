@@ -33,6 +33,9 @@ Nothing in Burner has been run against a real device yet. All automated tests us
 ## 6. Download OS test
 - [ ] Download one small image from the list. Confirm progress ("Downloading ..."), the checksum check, and that "Use this image" opens **Write** with the file preselected.
 
+## 6b. Notification test
+- [ ] Start a Backup or Download, switch to another app, and confirm one desktop notification appears when it finishes. Turn "Notifications" off in the top bar and confirm none appears.
+
 ## 7. If anything looks wrong
 Stop. Do not retry on a drive that matters. Note OS version, drive, exact steps and any message, and open an issue at github.com/Jubblin/burner.
 
