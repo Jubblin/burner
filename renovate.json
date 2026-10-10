@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ],
   "schedule": [
     "before 6am on Monday"
@@ -56,6 +57,43 @@
       "matchManagers": [
         "github-actions"
       ]
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "rangeStrategy": "pin"
+    },
+    {
+      "isVulnerabilityAlert": true,
+      "prPriority": 10,
+      "matchManagers": [
+        "cargo",
+        "npm",
+        "github-actions"
+      ]
     }
-  ]
+  ],
+  "dependencyDashboard": true,
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "dependencies",
+      "security"
+    ],
+    "schedule": [
+      "at any time"
+    ],
+    "minimumReleaseAge": null
+  },
+  "prHourlyLimit": 2,
+  "separateMajorMinor": true,
+  "semanticCommits": "disabled",
+  "commitMessagePrefix": "chore(deps):",
+  "rangeStrategy": "auto"
 }
