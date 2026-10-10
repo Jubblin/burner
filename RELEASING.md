@@ -5,7 +5,7 @@ Unsigned builds and PR checks work without any of this. Signing and auto-update 
 ## 1. One-time setup, all platforms (needed for auto-update)
 - [ ] Generate the update key: `npm run tauri signer generate -- -w ~/.tauri/burner.key`. Choose a password; store the key safely; never commit it.
 - [ ] Paste the printed public key into `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`), replacing `REPLACE_WITH_CONTENTS_OF_UPDATER_PUBLIC_KEY_FILE`.
-- [ ] In the same file replace `OWNER/REPO` in `plugins.updater.endpoints` with the real GitHub repo.
+- [x] Updater endpoint now points at `Jubblin/burner` (done).
 - [ ] Create the GitHub repo and push the branch (the release workflow runs there).
 - [ ] Add GitHub secrets (Settings, Secrets and variables, Actions): `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Linux needs only these.
 
