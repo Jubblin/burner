@@ -21,13 +21,14 @@ Nothing in Burner has been run against a real device yet. All automated tests us
 
 ## 4. Break it on purpose (each in a fresh run)
 - [ ] Cancel mid-write: shows "Write cancelled", no stuck state; "Try again" returns to idle.
-- [ ] Pull the stick mid-write: expect a clear "Write failed" message, not a hang or crash.
+- [ ] Pull the stick mid-write: expect the amber "Drive removed" title with the message "The drive was removed during the write. Whatever is on it is incomplete: reinsert it and write again.", a "Try again" button that returns to idle, and no hang or crash.
 - [ ] Corrupt download: point the catalog at a copy with one character of an entry's `sha256` changed (`catalog_url.txt` in the app config dir, or `BURNER_CATALOG_URL`), then download it in **Download OS**. Expect "checksum mismatch: the download was corrupt and has been deleted", and the file gone.
 - [ ] Deny the admin prompt: expect "authorization was denied or the helper failed" and nothing written.
 
 ## 5. Backup test
 - [ ] In **Backup**, back up the freshly written stick twice: with "Compress with gzip" off and on.
 - [ ] Plain file matches the original image for its length: `cmp -n LENGTH backup.img image.img`. The gzip file decompresses (`gunzip -c`) to the same bytes.
+- [ ] Pull the stick mid-backup: expect "The drive was removed during the backup. Whatever is on it is incomplete: reinsert it and back it up again.", a "Try again" button, and no hang or crash.
 
 ## 6. Download OS test
 - [ ] Download one small image from the list. Confirm progress ("Downloading ..."), the checksum check, and that "Use this image" opens **Write** with the file preselected.
