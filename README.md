@@ -35,7 +35,7 @@ The UI keeps Write disabled until the typed name equals the target drive name (o
 
 CI (`.github/workflows/ci.yml`) runs `cargo test` and `cargo clippy` on pull requests. Pushing a `v*` tag runs `release.yml`, which builds Tauri bundles for Windows, macOS (universal) and Linux and uploads them as per-OS workflow artifacts.
 
-Dependencies are updated by weekly Renovate PRs (`renovate.json`, never automerged). This needs the Renovate GitHub App installed on the repo, which must be done by a repo admin.
+Dependencies are updated by weekly Renovate PRs (`renovate.json`, never automerged). This needs the Renovate GitHub App installed on the repo, which must be done by a repo admin; once installed, a Dependency Dashboard issue will appear on the repo.
 
 ## Releasing
 
