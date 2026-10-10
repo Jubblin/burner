@@ -4,6 +4,8 @@ Burner itself is Apache-2.0 (see LICENSE). The components below keep their own l
 
 ## Fonts (`ui/fonts`)
 
+Satoshi was used earlier but removed: its licence does not allow redistributing the font files in a public repository. Earlier commits still contain them.
+
 ### JetBrains Mono (`JetBrainsMono-*.woff2`)
 SIL Open Font License 1.1, copyright and full text below. It permits redistribution (including inside an app) provided this notice and licence travel with the font files.
 
