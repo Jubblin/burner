@@ -21,6 +21,7 @@ Unsigned builds and PR checks work without any of this. Signing and auto-update 
 
 ## 4. Cutting a release
 - [ ] Bump `version` in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, push a tag like `v0.1.0`.
+- Tags containing a hyphen (e.g. `v0.1.0-rc1`, `v0.0.1-test`) publish as GitHub pre-releases and are never "latest".
 - The release workflow builds all three platforms, attaches them to a GitHub Release, and publishes `latest.json` when signing secrets exist.
 
 ## 5. Test before trusting it
