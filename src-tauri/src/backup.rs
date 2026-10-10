@@ -1,4 +1,4 @@
-use crate::writer::{elevated, needs_elevation};
+use crate::writer::{classify_io, elevated, needs_elevation};
 use crate::{Jobs, Progress};
 use flate2::{write::GzEncoder, Compression};
 use std::fs::File;
@@ -14,9 +14,10 @@ pub fn copy_image(
     cancel: &AtomicBool,
     mut progress: impl FnMut(u64, u64),
 ) -> Result<(), String> {
+    let dev = |e: std::io::Error| classify_io(&e, std::path::Path::new(src));
     let mut input = File::open(src).map_err(|e| format!("open {src}: {e}"))?;
-    let total = input.seek(SeekFrom::End(0)).map_err(|e| e.to_string())?;
-    input.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+    let total = input.seek(SeekFrom::End(0)).map_err(dev)?;
+    input.seek(SeekFrom::Start(0)).map_err(dev)?;
     let file = File::create(out).map_err(|e| format!("create {out}: {e}"))?;
     let mut sink: Box<dyn Write> = if compress {
         Box::new(GzEncoder::new(file, Compression::default()))
@@ -30,7 +31,7 @@ pub fn copy_image(
             if cancel.load(Ordering::SeqCst) {
                 return Err("cancelled".to_string());
             }
-            let n = input.read(&mut buf).map_err(|e| e.to_string())?;
+            let n = input.read(&mut buf).map_err(dev)?;
             if n == 0 {
                 break;
             }
