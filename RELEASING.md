@@ -29,3 +29,25 @@ Unsigned builds and PR checks work without any of this. Signing and auto-update 
 - [ ] Install an older build and confirm it updates itself silently and runs the new version on next launch.
 - [ ] Windows: confirm the installer does not relaunch the app or interrupt a write/verify/backup.
 - Not yet run end to end on real GitHub runners.
+
+## 6. CI security checks
+Workflows use least-privilege `permissions`, actions pinned to commit SHAs (Renovate bumps them), `--locked` Cargo builds and `npm ci --ignore-scripts`.
+
+`security.yml` (PRs, pushes to main, weekly, manual):
+| Job | What it does | Repo private? |
+|---|---|---|
+| `cargo-deny` | RustSec advisories, licence allow-list, duplicate crates (warn), crates.io-only sources (`src-tauri/deny.toml`) | runs |
+| `npm-audit` | `npm audit --omit=dev` (only devDependencies today, so currently a no-op guard) | runs |
+| `gitleaks` | secret scan of full git history | runs |
+| `workflow-lint` | actionlint + zizmor on `.github/workflows` | runs |
+| `codeql` | CodeQL for javascript-typescript and rust | skipped until public |
+| `dependency-review` | blocks PRs adding vulnerable dependencies | skipped until public |
+
+`release.yml` also publishes a CycloneDX SBOM (Rust and npm) and `SHA256SUMS` on every release (works on private repos), and a build-provenance attestation, which is skipped until the repo is public.
+
+## 7. Repo settings the owner should enable (not changed by code)
+- [ ] Branch protection on `main`: require PRs, and require the `rust` (CI) and `cargo-deny`, `npm-audit`, `gitleaks`, `workflow-lint` (Security) checks.
+- [ ] Secret scanning and push protection (Settings, Code security).
+- [ ] Dependabot security alerts and private vulnerability reporting.
+- [ ] Optional: require signed commits.
+- [ ] If the repo goes public, `codeql`, `dependency-review` and attestations switch on automatically; add `codeql` to required checks then.

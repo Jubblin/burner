@@ -1,12 +1,18 @@
 name: Release
 permissions:
-  contents: write
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false # never cancel a release run
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 jobs:
   build:
+    timeout-minutes: 90
+    permissions:
+      contents: write # tauri-action publishes the GitHub Release
     strategy:
       fail-fast: false
       matrix:
@@ -26,19 +32,19 @@ jobs:
       WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Linux deps
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - run: npm ci
+      # no rust-cache here on purpose: release artifacts must not be built from a shared (poisonable) cache
+      - run: npm ci --ignore-scripts
       - name: Import macOS certificate
         if: matrix.os == 'macos-latest' && env.APPLE_CERTIFICATE != ''
         run: |
@@ -69,15 +75,16 @@ jobs:
       - name: Pick build args
         shell: bash
         run: |
-          ARGS="${{ matrix.args }}"
+          ARGS="$MATRIX_ARGS"
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
             ARGS="$ARGS --config {\"bundle\":{\"createUpdaterArtifacts\":true}}"
           fi
           echo "BUILD_ARGS=$ARGS" >> "$GITHUB_ENV"
         env:
+          MATRIX_ARGS: ${{ matrix.args }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       - name: Build (signed only where secrets exist)
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         with:
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: Burner ${{ github.ref_name }}
@@ -92,10 +99,61 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: burner-${{ matrix.name }}
           path: |
             src-tauri/target/release/bundle/**/*
             src-tauri/target/universal-apple-darwin/release/bundle/**/*
           if-no-files-found: error
+
+  metadata:
+    # SBOMs + SHA256SUMS for every built artifact; attestations only on public repos
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: write # attach assets to the GitHub Release
+      id-token: write # build-provenance attestation (public only)
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: burner-*
+          path: built
+      - name: Collect installers, SBOMs and checksums
+        run: |
+          mkdir release-assets
+          find built -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' \
+            -o -name '*.deb' -o -name '*.rpm' -o -name '*.app.tar.gz' -o -name '*.sig' -o -name '*.zip' \) \
+            -exec cp -n {} release-assets/ \;
+          cargo install --locked cargo-cyclonedx --version 0.5.9
+          cargo cyclonedx --manifest-path src-tauri/Cargo.toml --format json --spec-version 1.5 --override-filename burner-rust.cdx
+          mv src-tauri/burner-rust.cdx.json release-assets/
+          # runtime npm deps only; the repo currently has devDependencies only, so this SBOM is near-empty
+          npm ci --ignore-scripts
+          npm sbom --sbom-format cyclonedx --sbom-type application --omit dev > release-assets/burner-npm.cdx.json
+          (cd release-assets && sha256sum -- * | grep -v ' SHA256SUMS$' > ../SHA256SUMS && mv ../SHA256SUMS .)
+          ls -l release-assets
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        if: github.event.repository.private == false # attestations need a public repo (or Enterprise)
+        with:
+          subject-path: release-assets/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: burner-release-metadata
+          path: |
+            release-assets/SHA256SUMS
+            release-assets/*.cdx.json
+          if-no-files-found: error
+      - name: Attach SBOMs and SHA256SUMS to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gh release upload "$TAG" release-assets/SHA256SUMS release-assets/*.cdx.json --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
