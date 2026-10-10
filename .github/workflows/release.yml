@@ -90,7 +90,8 @@ jobs:
           releaseName: Burner ${{ github.ref_name }}
           releaseDraft: false
           prerelease: ${{ startsWith(github.ref, 'refs/tags/') && contains(github.ref_name, '-') }}
-          uploadUpdaterJson: ${{ env.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          includeUpdaterJson: ${{ env.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          updaterJsonKeepUniversal: true # macOS only builds universal; without this latest.json has no darwin-* entry
           args: ${{ env.BUILD_ARGS }} ${{ env.TAURI_SIGN_ARGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
