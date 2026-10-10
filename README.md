@@ -10,6 +10,8 @@ npm run tauri dev
 npm run tauri build -- --debug --bundles app   # --bundles app skips the DMG step on macOS
 ```
 
+Notifications: a desktop notification appears when a write, backup or download finishes or fails while the window is in the background (toggle in the top bar, default on).
+
 Testing on a real drive: see [TESTING.md](TESTING.md).
 
 Layout: `ui/` is vanilla HTML/CSS/JS (no bundler, fonts bundled in `ui/fonts`); `src-tauri/src/` has one module per area. All backend commands are currently stubs that return sample data and fake progress.
