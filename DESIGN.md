@@ -33,24 +33,24 @@ colors:
   dark-disabled-text: "#7C828A"
 typography:
   heading-lg:
-    fontFamily: Satoshi
-    fontSize: 22px
-    fontWeight: 700
+    fontFamily: JetBrains Mono
+    fontSize: 20px
+    fontWeight: 500
   heading-md:
-    fontFamily: Satoshi
-    fontSize: 15px
-    fontWeight: 700
+    fontFamily: JetBrains Mono
+    fontSize: 16px
+    fontWeight: 500
   body:
-    fontFamily: Satoshi
-    fontSize: 14px
+    fontFamily: JetBrains Mono
+    fontSize: 13px
     fontWeight: 400
   label:
-    fontFamily: Satoshi
+    fontFamily: JetBrains Mono
     fontSize: 12px
     fontWeight: 500
   mono:
     fontFamily: JetBrains Mono
-    fontSize: 13px
+    fontSize: 12px
     fontWeight: 400
 rounded:
   sm: 4px
@@ -113,10 +113,9 @@ Light is the default. Dark follows the OS setting (`prefers-color-scheme`) with 
 - Progress track `dark-progress-track`; disabled fill `dark-disabled` with `dark-disabled-text`.
 
 ## Typography
-- Satoshi (Fontshare, free commercial use; 400/500/700) for headings, UI, and body.
-- JetBrains Mono (OFL; 400/500) for drive paths, sizes, and hashes.
-- Both bundled locally in the app (works offline).
-- Sizes: heading 22px and 15px, body 14px, label 12px.
+- JetBrains Mono (OFL 1.1; 400/500) is the only typeface: headings, UI, body, and data (drive paths, sizes, hashes).
+- Bundled locally in the app (works offline).
+- Sizes: heading 20px and 16px, body 13px, label 12px, data 12px. Headings differ from body by size and colour as well as weight (500 vs 400); there is no bold file, so no faux bold.
 
 ## Layout
 Grid-disciplined single-column wizard: 1 Source, 2 Target, 3 Write. Step numbers always visible. Fixed narrow window, about 560px. Plain top row of mode tabs: Write / Backup / Download OS. Spacing is a 4px base (4, 8, 16, 24, 32, 48) with 24px between steps.
@@ -155,3 +154,4 @@ Don't:
 |------|----------|-----------|
 | 2026-10-09 | Initial design system created | Created by /design-consultation from product context (no competitor research) |
 | 2026-10-09 | Added dark theme tokens; light stays default | Approved dark mockup; OS-follow with manual override, danger still the only red |
+| 2026-10-10 | Replaced Satoshi with JetBrains Mono everywhere | Satoshi licence (ITF FFL v2.0) does not allow redistributing the font files in the public repo; JetBrains Mono is OFL 1.1 |
