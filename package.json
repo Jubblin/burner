@@ -4,5 +4,5 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": { "tauri": "tauri" },
-  "devDependencies": { "@tauri-apps/cli": "^2" }
+  "devDependencies": { "@tauri-apps/cli": "2.12.1" }
 }
