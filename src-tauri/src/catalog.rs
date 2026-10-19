@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+const EXTRA_OS: &str = include_str!("extra_os.json");
 const DEFAULT_URL: &str = "https://downloads.raspberrypi.org/os_list_imagingutility_v4.json";
 
 #[derive(Serialize, Clone)]
@@ -83,7 +84,14 @@ pub async fn fetch_catalog(app: AppHandle) -> Result<Vec<OsEntry>, String> {
         .text()
         .await
         .map_err(|e| e.to_string())?;
-    parse_catalog(&body)
+    let mut out = parse_catalog(&body)?;
+    // built-in extras (checksums copied from each project's official page, see extra_os.json)
+    for e in parse_catalog(EXTRA_OS)? {
+        if !out.iter().any(|o| o.id == e.id) {
+            out.push(e);
+        }
+    }
+    Ok(out)
 }
 
 fn sha256_file(path: &std::path::Path) -> std::io::Result<String> {
@@ -190,6 +198,13 @@ mod tests {
         assert!(super::verify_or_delete(&f, good).is_ok() && f.exists());
         assert!(super::verify_or_delete(&f, "00").is_err());
         assert!(!f.exists());
+    }
+
+    #[test]
+    fn extras_have_checksums() {
+        let l = super::parse_catalog(super::EXTRA_OS).unwrap();
+        assert_eq!(l.len(), 5);
+        assert!(l.iter().all(|e| e.sha256.len() == 64 && e.size_bytes > 0));
     }
 
     #[test]
