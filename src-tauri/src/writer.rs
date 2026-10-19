@@ -166,7 +166,7 @@ fn mac_open_device(device: &str) -> Result<File, String> {
 }
 
 /// Receive one file descriptor sent with SCM_RIGHTS.
-#[cfg(unix)]
+#[cfg(target_os = "macos")]
 fn recv_fd(sock: &std::os::unix::net::UnixStream) -> Option<File> {
     use std::os::fd::{AsRawFd, FromRawFd};
     // SAFETY: plain recvmsg into zeroed, correctly sized buffers; the received fd is owned by the returned File.
@@ -424,7 +424,7 @@ pub fn helper_main() -> bool {
 mod tests {
     use super::*;
 
-    #[cfg(unix)]
+    #[cfg(target_os = "macos")]
     #[test]
     fn recv_fd_gets_a_descriptor_sent_with_scm_rights() {
         use std::os::fd::AsRawFd;
