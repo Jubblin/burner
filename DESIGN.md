@@ -138,6 +138,14 @@ Each documents hover, focus-visible, active, and disabled states.
 ## Motion
 Minimal-functional: progress bar and step change only. 150-250ms, ease-out enter, ease-in exit, no bounce.
 
+## Logo
+A teal flame on a white disc, on a primary-teal rounded tile: "burn a disc". Source: `design/logo.svg` (app icon source: `design/icon-source.svg`).
+- Colours: tile `primary` #0F6B5C, disc white, flame `primary`. The same tile is used in light and dark themes.
+- Minimum size: 16px (flame and disc stay legible). Keep clear space of at least 1/8 of the tile width.
+- Do: use the supplied SVG or PNGs unchanged.
+- Don't: use red or orange (red only means "this will be erased"), add gradients, glow or shadows, recolour the flame, or stretch the tile.
+- macOS: the tile is full-bleed with its own rounded corners (radius 28/128), not Apple's padded squircle template, so it can look slightly larger than neighbouring Dock icons.
+
 ## Do's and Don'ts
 Do:
 - Show the exact drive name and device path wherever a drive is shown.
@@ -154,4 +162,5 @@ Don't:
 |------|----------|-----------|
 | 2026-10-09 | Initial design system created | Created by /design-consultation from product context (no competitor research) |
 | 2026-10-09 | Added dark theme tokens; light stays default | Approved dark mockup; OS-follow with manual override, danger still the only red |
+| 2026-10-19 | Added logo (flame on disc, teal tile) | Chosen from three options; no red, matches primary |
 | 2026-10-10 | Replaced Satoshi with JetBrains Mono everywhere | Satoshi licence (ITF FFL v2.0) does not allow redistributing the font files in the public repo; JetBrains Mono is OFL 1.1 |
