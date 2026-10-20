@@ -7,9 +7,9 @@ yanked = "deny"
 ignore = [
   # proc-macro-error: unmaintained, build-time only, pulled in by Tauri's macro stack; no safe upgrade path here
   "RUSTSEC-2024-0370",
-  # zip 4.6.1 via tauri-plugin-updater (latest 2.x still pins it): archive extract() bugs; updater only unpacks signature-verified bundles
+  # zip 4.6.1 comes from tauri-plugin-updater (our own zip 9 is patched); it only extracts update archives verified against our signing key. Drop once the plugin bumps zip
   "RUSTSEC-2026-0367", "RUSTSEC-2026-0368", "RUSTSEC-2026-0369",
-  # zbus_names/zvariant/zvariant_derive: unmaintained, via tauri-plugin-notification (Linux only); no replacement available
+  # zbus/zvariant: unmaintained, Linux-only via Tauri's dbus stack; no upgrade path from this repo
   "RUSTSEC-2026-0370", "RUSTSEC-2026-0371", "RUSTSEC-2026-0372",
 ]
 

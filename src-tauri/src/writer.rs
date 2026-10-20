@@ -40,6 +40,10 @@ fn run(image: &str, device: &str, cancel: &AtomicBool, emit: &dyn Fn(Progress)) 
     ensure_not_system_disk(device)?;
     unmount(device)?;
     if needs_elevation(device, true)? {
+        // macOS: authopen asks for the password and hands this process the open device, so the app itself writes
+        #[cfg(target_os = "macos")]
+        return write_file(Path::new(image), mac_open_device(device)?, Path::new(device), cancel, emit);
+        #[allow(unreachable_code)]
         elevated("--write-helper", &[image, device], cancel, emit)
     } else {
         write_to(Path::new(image), Path::new(device), cancel, emit)
@@ -85,11 +89,18 @@ fn classify_with(e: &std::io::Error, device: &Path, listed: impl FnOnce() -> Opt
 /// Core engine: stream (decompressed) image to `target`, flush, then verify by SHA-256 read-back.
 pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
     let e = |err: std::io::Error| classify_io(&err, target);
-    let pos = Arc::new(AtomicU64::new(0));
-    let (mut src, total) = open_source(image, pos.clone())?;
     // never create(true) on a device path: a vanished node must not become a regular file under /dev
     let dev = target.starts_with("/dev/") || target.to_string_lossy().starts_with(r"\\.\");
-    let mut dst = OpenOptions::new().write(true).create(!dev).truncate(false).open(target).map_err(e)?;
+    let dst = OpenOptions::new().read(true).write(true).create(!dev).truncate(false).open(target).map_err(e)?;
+    write_file(image, dst, target, cancel, emit)
+}
+
+/// Write + verify on an already-open target (`target` is only used to classify errors). Verification
+/// reads back through the same handle.
+fn write_file(image: &Path, mut dst: File, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(Progress)) -> Result<(), String> {
+    let e = |err: std::io::Error| classify_io(&err, target);
+    let pos = Arc::new(AtomicU64::new(0));
+    let (mut src, total) = open_source(image, pos.clone())?;
     let pad = !dst.metadata().map_err(e)?.is_file();
     let (mut hasher, mut buf, mut n) = (Sha256::new(), vec![0u8; BLOCK], 0u64);
     loop {
@@ -112,10 +123,9 @@ pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(
     }
     dst.flush().map_err(e)?;
     dst.sync_all().map_err(e)?;
-    drop(dst);
     let want = hasher.finalize();
 
-    let mut rd = File::open(target).map_err(e)?;
+    let mut rd = dst;
     rd.seek(SeekFrom::Start(0)).map_err(e)?;
     let (mut h, mut left) = (Sha256::new(), n);
     while left > 0 {
@@ -132,6 +142,52 @@ pub fn write_to(image: &Path, target: &Path, cancel: &AtomicBool, emit: &dyn Fn(
         return Err("verification failed: data read back does not match the image".into());
     }
     Ok(())
+}
+
+/// Ask macOS (authopen, system password prompt) to open the raw device read/write and pass the fd back
+/// over a socketpair, so no root process is needed.
+#[cfg(target_os = "macos")]
+fn mac_open_device(device: &str) -> Result<File, String> {
+    use std::os::unix::net::UnixStream;
+    use std::process::Stdio;
+    let raw = device.replacen("/dev/disk", "/dev/rdisk", 1);
+    let (ours, theirs) = UnixStream::pair().map_err(|e| e.to_string())?;
+    let mut child = Command::new("/usr/libexec/authopen")
+        .args(["-stdoutpipe", "-o", "2", &raw]) // 2 = O_RDWR
+        .stdout(Stdio::from(std::os::fd::OwnedFd::from(theirs)))
+        .spawn()
+        .map_err(|e| format!("cannot start authopen: {e}"))?;
+    let fd = recv_fd(&ours);
+    let st = child.wait().map_err(|e| e.to_string())?;
+    match fd {
+        Some(f) if st.success() => Ok(f),
+        _ => Err("authorization was denied or the drive could not be opened".into()),
+    }
+}
+
+/// Receive one file descriptor sent with SCM_RIGHTS.
+#[cfg(target_os = "macos")]
+fn recv_fd(sock: &std::os::unix::net::UnixStream) -> Option<File> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    // SAFETY: plain recvmsg into zeroed, correctly sized buffers; the received fd is owned by the returned File.
+    unsafe {
+        let mut byte = [0u8; 1];
+        let mut iov = libc::iovec { iov_base: byte.as_mut_ptr().cast(), iov_len: 1 };
+        let mut ctl = [0u64; 8]; // 64 bytes, 8-aligned, >= CMSG_SPACE(sizeof(int))
+        let mut msg: libc::msghdr = std::mem::zeroed();
+        msg.msg_iov = &mut iov;
+        msg.msg_iovlen = 1;
+        msg.msg_control = ctl.as_mut_ptr().cast();
+        msg.msg_controllen = std::mem::size_of_val(&ctl) as _;
+        if libc::recvmsg(sock.as_raw_fd(), &mut msg, 0) < 0 {
+            return None;
+        }
+        let c = libc::CMSG_FIRSTHDR(&msg);
+        if c.is_null() || (*c).cmsg_level != libc::SOL_SOCKET || (*c).cmsg_type != libc::SCM_RIGHTS {
+            return None;
+        }
+        Some(File::from_raw_fd(std::ptr::read_unaligned(libc::CMSG_DATA(c).cast::<i32>())))
+    }
 }
 
 fn read_full(r: &mut dyn Read, buf: &mut [u8]) -> std::io::Result<usize> {
@@ -367,6 +423,36 @@ pub fn helper_main() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn recv_fd_gets_a_descriptor_sent_with_scm_rights() {
+        use std::os::fd::AsRawFd;
+        let mut f = tempfile::tempfile().unwrap();
+        f.write_all(b"hi").unwrap();
+        let (a, b) = std::os::unix::net::UnixStream::pair().unwrap();
+        unsafe {
+            let mut byte = [0u8; 1];
+            let mut iov = libc::iovec { iov_base: byte.as_mut_ptr().cast(), iov_len: 1 };
+            let mut ctl = [0u64; 8];
+            let mut msg: libc::msghdr = std::mem::zeroed();
+            msg.msg_iov = &mut iov;
+            msg.msg_iovlen = 1;
+            msg.msg_control = ctl.as_mut_ptr().cast();
+            msg.msg_controllen = libc::CMSG_SPACE(4) as _;
+            let c = libc::CMSG_FIRSTHDR(&msg);
+            (*c).cmsg_level = libc::SOL_SOCKET;
+            (*c).cmsg_type = libc::SCM_RIGHTS;
+            (*c).cmsg_len = libc::CMSG_LEN(4) as _;
+            std::ptr::write_unaligned(libc::CMSG_DATA(c).cast::<i32>(), f.as_raw_fd());
+            assert!(libc::sendmsg(a.as_raw_fd(), &msg, 0) >= 0);
+        }
+        let mut got = recv_fd(&b).unwrap();
+        got.seek(SeekFrom::Start(0)).unwrap();
+        let mut s = String::new();
+        got.read_to_string(&mut s).unwrap();
+        assert_eq!(s, "hi");
+    }
 
     #[test]
     fn quoting_handles_spaces_and_single_quotes() {
