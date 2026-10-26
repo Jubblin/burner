@@ -111,7 +111,7 @@ jobs:
   metadata:
     # SBOMs + SHA256SUMS for every built artifact; attestations only on public repos
     needs: build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: write # attach assets to the GitHub Release
