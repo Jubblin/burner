@@ -1,0 +1,5 @@
+# actionlint v1.7.12 predates the ubuntu-26.04 hosted runner label (rhysd/actionlint#682).
+# Declare it so the label check stays enabled for every other label.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
